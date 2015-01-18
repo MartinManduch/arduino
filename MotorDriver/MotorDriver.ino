@@ -1,12 +1,20 @@
 // One Arduino Leonardo has 2 motor drivers connected, each is driving 2 motors, so together 4 motors
 // Note: if motors is close to supplied with 100% of 24V i.e. PWM is 255, than even if we stop motor, a few sensor impulses could be produced, it can be max 1,2 for super power jack, but for smaller one it could be up to 5, but for the sake of simplicity, we are not counting them
+
 #include "consts.h"
 #include "utils.h"
 
-volatile unsigned long currentImpulses = 0;
-unsigned long targetImpulses = 0;
-byte speed = 0;
-byte command = 0;
+typedef struct{
+  bool moving;
+  bool blocked;
+  volatile unsigned long currentImpulses;
+  unsigned long targetImpulses;
+  byte speed;
+  byte command;
+}Status;
+
+Status state = {false, false, 0, 0, 0, 0};
+
 boolean enableInterrupts = false; // we need a special variable, because calling attachInterrupt causes immediate interrupt
 
 // the setup function runs once when you press reset or power the board
@@ -53,7 +61,7 @@ void loop() {
 
   readSerialForInput();
 
-  switch (command) {
+  switch (state.command) {
     case 1:
       disableMotors();
       break;
@@ -90,36 +98,56 @@ void loop() {
 
 
 void goForwardSmallMotor1() {
-  digitalWrite(MOTOR1_DIRECTION_PIN, LOW);
-  analogWrite(MOTOR1_SPEED_PIN, speed);
-  checkProgress(MOTOR1_SPEED_PIN);
+  if (state.moving == false && state.blocked == false){
+    digitalWrite(MOTOR1_DIRECTION_PIN, LOW);
+    analogWrite(MOTOR1_SPEED_PIN, state.speed);
+    state.moving = true;
+    checkProgress(MOTOR1_SPEED_PIN);
+  } else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goBackSmallMotor1() {
-  digitalWrite(MOTOR1_DIRECTION_PIN, HIGH);
-  analogWrite(MOTOR1_SPEED_PIN, speed);
-  checkProgress(MOTOR1_SPEED_PIN);
+  if (state.moving == false && state.blocked == false){
+    digitalWrite(MOTOR1_DIRECTION_PIN, HIGH);
+    analogWrite(MOTOR1_SPEED_PIN, state.speed);
+    state.moving = true;
+    checkProgress(MOTOR1_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goForwardSmallMotor2() {
-  digitalWrite(MOTOR2_DIRECTION_PIN, LOW);
-  analogWrite(MOTOR2_SPEED_PIN, speed);
-  checkProgress(MOTOR2_SPEED_PIN);
+  if (state.moving == false && state.blocked == false){
+    digitalWrite(MOTOR2_DIRECTION_PIN, LOW);
+    analogWrite(MOTOR2_SPEED_PIN, state.speed);
+    state.moving = true;
+    checkProgress(MOTOR2_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goBackSmallMotor2() {
-  digitalWrite(MOTOR2_DIRECTION_PIN, HIGH);
-  analogWrite(MOTOR2_SPEED_PIN, speed);
-  checkProgress(MOTOR2_SPEED_PIN);
+  if (state.moving == false && state.blocked == false){
+    digitalWrite(MOTOR2_DIRECTION_PIN, HIGH);
+    analogWrite(MOTOR2_SPEED_PIN, state.speed);
+    state.moving = true;
+    checkProgress(MOTOR2_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void checkProgress(byte speedPIN) {
   int before;
   int after;
-  while (currentImpulses < targetImpulses) {
-    before = currentImpulses;
+  while (state.currentImpulses < state.targetImpulses) {
+    before = state.currentImpulses;
     delay(SENSOR1_TIMEOUT);
-    if (before == currentImpulses && currentImpulses < targetImpulses) {
+    if (before == state.currentImpulses && state.currentImpulses < state.targetImpulses) {
       Serial.println("eMotor stopped not reaching target");
       stopMotor(speedPIN);
       break;
@@ -129,10 +157,10 @@ void checkProgress(byte speedPIN) {
 
 void interrupt_handler1() {
   if (enableInterrupts) {
-    currentImpulses++;
+    state.currentImpulses++;
     Serial.print("i");
-    Serial.println(currentImpulses, DEC);
-    if (currentImpulses >= targetImpulses) {
+    Serial.println(state.currentImpulses, DEC);
+    if (state.currentImpulses >= state.targetImpulses) {
       stopMotor(MOTOR1_SPEED_PIN);
     }
   }
@@ -140,10 +168,10 @@ void interrupt_handler1() {
 
 void interrupt_handler2() {
   if (enableInterrupts) {
-    currentImpulses++;
+    state.currentImpulses++;
     Serial.print("i");
-    Serial.println(currentImpulses, DEC);
-    if (currentImpulses >= targetImpulses) {
+    Serial.println(state.currentImpulses, DEC);
+    if (state.currentImpulses >= state.targetImpulses) {
       stopMotor(MOTOR2_SPEED_PIN);
     }
   }
@@ -151,9 +179,9 @@ void interrupt_handler2() {
 
 
 void readSerialForInput() {
-  command = getCommand();
+  state.command = getCommand();
   int param1 = 0;
-  if (command > 0) {
+  if (state.command > 0) {
     while (param1 == 0) {
       param1 = getParam1();
       delay(1);
@@ -163,10 +191,10 @@ void readSerialForInput() {
       param2 = getParam2();
       delay(1);
     }
-    speed = param1;
-    targetImpulses = param2;
+    state.speed = param1;
+    state.targetImpulses = param2;
     Serial.print("mCommand: ");
-    Serial.print(command);
+    Serial.print(state.command);
     Serial.print(" Param1: ");
     Serial.print(param1);
     Serial.print(" Param2: ");
@@ -203,6 +231,8 @@ unsigned long getParam2() {
 }
 
 void disableMotors() {
+  state.moving = false;
+  state.blocked = false;
   digitalWrite(DRIVER1_D2_PIN, LOW);
   digitalWrite(DRIVER2_D2_PIN, LOW);
 }
@@ -217,7 +247,7 @@ void doWork(byte sensorPIN) {
   boolean logicalValue = false;
   boolean previousLogicalValue = false;
   unsigned long previousTime = millis();
-  while (currentImpulses < targetImpulses) {
+  while (state.currentImpulses < state.targetImpulses) {
     value = analogRead(sensorPIN);
     previousLogicalValue = logicalValue;
     if (value > CUSTOM_HIGH) {
@@ -229,9 +259,9 @@ void doWork(byte sensorPIN) {
 
     if ((logicalValue == false) && (previousLogicalValue == true)) {
       previousTime = millis();
-      currentImpulses++;
+      state.currentImpulses++;
       Serial.print("i");
-      Serial.println(currentImpulses, DEC);
+      Serial.println(state.currentImpulses, DEC);
 
     }
     else if ((millis() - previousTime) > SENSOR2_TIMEOUT) { // no signal change last SENSOR2_TIMEOUT msec
@@ -244,42 +274,41 @@ void doWork(byte sensorPIN) {
 
 void goForwardBigMotor1() {
   digitalWrite(MOTOR3_DIRECTION_PIN, HIGH);
-  analogWrite(MOTOR3_SPEED_PIN, speed);
+  analogWrite(MOTOR3_SPEED_PIN, state.speed);
   doWork(MOTOR3_SENSOR_PIN);
   stopMotor(MOTOR3_SPEED_PIN);
 }
 
 void goBackBigMotor1() {
   digitalWrite(MOTOR3_DIRECTION_PIN, LOW);
-  analogWrite(MOTOR3_SPEED_PIN, speed);
+  analogWrite(MOTOR3_SPEED_PIN, state.speed);
   doWork(MOTOR3_SENSOR_PIN);
   stopMotor(MOTOR3_SPEED_PIN);
 }
 
 void goForwardBigMotor2() {
   digitalWrite(MOTOR4_DIRECTION_PIN, HIGH);
-  analogWrite(MOTOR4_SPEED_PIN, speed);
+  analogWrite(MOTOR4_SPEED_PIN, state.speed);
   doWork(MOTOR4_SENSOR_PIN);
   stopMotor(MOTOR4_SPEED_PIN);
 }
 
 void goBackBigMotor2() {
   digitalWrite(MOTOR4_DIRECTION_PIN, LOW);
-  analogWrite(MOTOR4_SPEED_PIN, speed);
+  analogWrite(MOTOR4_SPEED_PIN, state.speed);
   doWork(MOTOR4_SENSOR_PIN);
   stopMotor(MOTOR4_SPEED_PIN);
 }
 
 inline void stopMotor(byte motorSpeedPin) {
+  state.moving = false;
   analogWrite(motorSpeedPin, 0);
   Serial.println("mSTOP");
 }
 
 inline void reset() { // sets variables to the default state, also stops all motors by setting speed to 0
-  currentImpulses = 0;
-  targetImpulses = 0;
-  command = 0;
-  speed = 0;
+  
+  state = {false, false, 0, 0, 0, 0};
 
   digitalWrite(DRIVER1_D2_PIN, HIGH);
   digitalWrite(DRIVER2_D2_PIN, HIGH);
