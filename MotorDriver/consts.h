@@ -1,5 +1,11 @@
 #include "Arduino.h"
 
+const byte NO_MOTOR = 0;
+const byte MOTOR1 = 1;
+const byte MOTOR2 = 2;
+const byte MOTOR3 = 3;
+const byte MOTOR4 = 4;
+
 const byte MOTOR1_SENSOR_PIN = 0; // must be interrupt, 
 const byte MOTOR1_SPEED_PIN = 3; //must be PWM
 const byte MOTOR1_DIRECTION_PIN = 2;

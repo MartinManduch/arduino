@@ -11,9 +11,10 @@ typedef struct{
   unsigned long targetImpulses;
   byte speed;
   byte command;
+  byte currentMotorON;
 }Status;
 
-Status state = {false, false, 0, 0, 0, 0};
+Status state = {false, false, 0, 0, 0, 0, NO_MOTOR};
 
 boolean enableInterrupts = false; // we need a special variable, because calling attachInterrupt causes immediate interrupt
 
@@ -99,6 +100,7 @@ void loop() {
 
 void goForwardSmallMotor1() {
   if (state.moving == false && state.blocked == false){
+    state.currentMotorON = MOTOR1;
     digitalWrite(MOTOR1_DIRECTION_PIN, LOW);
     analogWrite(MOTOR1_SPEED_PIN, state.speed);
     state.moving = true;
@@ -110,6 +112,7 @@ void goForwardSmallMotor1() {
 
 void goBackSmallMotor1() {
   if (state.moving == false && state.blocked == false){
+     state.currentMotorON = MOTOR1;
     digitalWrite(MOTOR1_DIRECTION_PIN, HIGH);
     analogWrite(MOTOR1_SPEED_PIN, state.speed);
     state.moving = true;
@@ -121,6 +124,7 @@ void goBackSmallMotor1() {
 
 void goForwardSmallMotor2() {
   if (state.moving == false && state.blocked == false){
+     state.currentMotorON = MOTOR2;
     digitalWrite(MOTOR2_DIRECTION_PIN, LOW);
     analogWrite(MOTOR2_SPEED_PIN, state.speed);
     state.moving = true;
@@ -132,6 +136,7 @@ void goForwardSmallMotor2() {
 
 void goBackSmallMotor2() {
   if (state.moving == false && state.blocked == false){
+     state.currentMotorON = MOTOR2;
     digitalWrite(MOTOR2_DIRECTION_PIN, HIGH);
     analogWrite(MOTOR2_SPEED_PIN, state.speed);
     state.moving = true;
@@ -156,7 +161,7 @@ void checkProgress(byte speedPIN) {
 }
 
 void interrupt_handler1() {
-  if (enableInterrupts) {
+  if (enableInterrupts && state.currentMotorON == MOTOR1) { //we are counting only impluses from the sensor of motor 1
     state.currentImpulses++;
     Serial.print("i");
     Serial.println(state.currentImpulses, DEC);
@@ -167,7 +172,7 @@ void interrupt_handler1() {
 }
 
 void interrupt_handler2() {
-  if (enableInterrupts) {
+  if (enableInterrupts && state.currentMotorON == MOTOR2) {  //we are counting only impluses from the sensor of motor 2
     state.currentImpulses++;
     Serial.print("i");
     Serial.println(state.currentImpulses, DEC);
@@ -232,7 +237,8 @@ unsigned long getParam2() {
 
 void disableMotors() {
   state.moving = false;
-  state.blocked = false;
+  state.blocked = true;
+  state.currentMotorON = NO_MOTOR;
   digitalWrite(DRIVER1_D2_PIN, LOW);
   digitalWrite(DRIVER2_D2_PIN, LOW);
 }
@@ -273,42 +279,63 @@ void doWork(byte sensorPIN) {
 }
 
 void goForwardBigMotor1() {
+   if (state.moving == false && state.blocked == false){
+   state.currentMotorON = MOTOR3;
   digitalWrite(MOTOR3_DIRECTION_PIN, HIGH);
   analogWrite(MOTOR3_SPEED_PIN, state.speed);
   doWork(MOTOR3_SENSOR_PIN);
   stopMotor(MOTOR3_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goBackBigMotor1() {
+  if (state.moving == false && state.blocked == false){
+    state.currentMotorON = MOTOR3;
   digitalWrite(MOTOR3_DIRECTION_PIN, LOW);
   analogWrite(MOTOR3_SPEED_PIN, state.speed);
   doWork(MOTOR3_SENSOR_PIN);
   stopMotor(MOTOR3_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goForwardBigMotor2() {
+  if (state.moving == false && state.blocked == false){
+     state.currentMotorON = MOTOR4;
   digitalWrite(MOTOR4_DIRECTION_PIN, HIGH);
   analogWrite(MOTOR4_SPEED_PIN, state.speed);
   doWork(MOTOR4_SENSOR_PIN);
   stopMotor(MOTOR4_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 void goBackBigMotor2() {
+  if (state.moving == false && state.blocked == false){
+     state.currentMotorON = MOTOR4;
   digitalWrite(MOTOR4_DIRECTION_PIN, LOW);
   analogWrite(MOTOR4_SPEED_PIN, state.speed);
   doWork(MOTOR4_SENSOR_PIN);
   stopMotor(MOTOR4_SPEED_PIN);
+  }else{
+    Serial.println("eRejecting command, motor is moving or blocked");
+  }
 }
 
 inline void stopMotor(byte motorSpeedPin) {
   state.moving = false;
+  state.currentMotorON = 0;
   analogWrite(motorSpeedPin, 0);
   Serial.println("mSTOP");
 }
 
 inline void reset() { // sets variables to the default state, also stops all motors by setting speed to 0
   
-  state = {false, false, 0, 0, 0, 0};
+  state = {false, false, 0, 0, 0, 0, 0};
 
   digitalWrite(DRIVER1_D2_PIN, HIGH);
   digitalWrite(DRIVER2_D2_PIN, HIGH);
