@@ -15,13 +15,12 @@ ser = serial.Serial('COM18', 9600, timeout=3)
 # command number
 ser.write([int(sys.argv[1])])
 
+if int(sys.argv[1]) > 9: # commands from 10 and higher require 2 params
+	# parameter 1 (motor speed) 0-255
+	ser.write([int(sys.argv[2])])
 
-# parameter 1 (motor speed)
-ser.write([int(sys.argv[2])])
-
-
-# parameter 2 (number of impulses)
-ser.write(packIntegerAsULong(int(sys.argv[3])))
+	# parameter 2 (number of impulses)
+	ser.write(packIntegerAsULong(int(sys.argv[3])))
 
 
 while 1:
@@ -30,7 +29,7 @@ while 1:
 		if (input != None and input != ""):
 			input = input.rstrip('\n')
 			if input[0] =='i':
-				sys.stdout.write("impulses:" +  input[1:] + "\r")				
+				sys.stdout.write("impulses:" +  input[1:] + "\r")			
 				#print(input[1:])
 			elif input[0]=="m":				
 				if input[1:].find("STOP")>-1:					

@@ -186,7 +186,7 @@ void interrupt_handler2() {
 void readSerialForInput() {
   state.command = getCommand();
   int param1 = 0;
-  if (state.command > 0) {
+  if (state.command > 9) {
     while (param1 == 0) {
       param1 = getParam1();
       delay(1);
@@ -241,6 +241,7 @@ void disableMotors() {
   state.currentMotorON = NO_MOTOR;
   digitalWrite(DRIVER1_D2_PIN, LOW);
   digitalWrite(DRIVER2_D2_PIN, LOW);
+  Serial.println("mSTOP");
 }
 
 void enableMotors() {
