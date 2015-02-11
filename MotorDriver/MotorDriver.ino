@@ -86,11 +86,11 @@ void loop() {
       reset();
       break;
     case 40:
-      goForwardBigMotor1();
+      goForwardBigMotor2();
       reset();
       break;
     case 41:
-      goBackBigMotor1();
+      goBackBigMotor2();
       reset();
       break;
   }
