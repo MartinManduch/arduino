@@ -6,7 +6,7 @@ const byte CALIBRATION_TIME_SEC = 10;
 
 const int MOTION_DETECTION_DELAY_MSEC = 300;
 
-const byte NUMBER_OF_BUZZER_BEEPS = 5;
+const byte NUMBER_OF_BUZZER_BEEPS = 10;
 const int DELAY_BETWEEN_BEEPS_MSEC = 1000; //msec
 const int BUZZER_BEEP_DURATION_MSEC = 20; //msec
 const unsigned long ALARM_DURATION_MSEC = 120000;
