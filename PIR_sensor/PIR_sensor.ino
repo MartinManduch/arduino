@@ -2,13 +2,14 @@
 const byte PIR_SENSOR_PIN = 12;
 const byte BUZZER_PIN = 13;
 const byte RELAY_SWITCH_PIN = 11;
-const byte CALIBRATION_TIME_SEC = 10;
+const byte CALIBRATION_TIME_SEC = 60;
 
 const int MOTION_DETECTION_DELAY_MSEC = 300;
 
 const byte NUMBER_OF_BUZZER_BEEPS = 10;
 const int DELAY_BETWEEN_BEEPS_MSEC = 1000; //msec
 const int BUZZER_BEEP_DURATION_MSEC = 20; //msec
+const int BUZZER_LONG_BEEP_DURATION_MSEC = 1000; //msec
 const unsigned long ALARM_DURATION_MSEC = 120000;
 
 enum states{MONITORING, BUZZER_SIGNALLING, SIREN_ALARM_ON};
@@ -33,6 +34,12 @@ bool isMotionDetected(){
     }
     Serial.println("isMotionDected true");
     return result;
+}
+
+void shortBuzzerBeep(){
+  digitalWrite(BUZZER_PIN, HIGH);
+  delay(BUZZER_LONG_BEEP_DURATION_MSEC);
+  digitalWrite(BUZZER_PIN, LOW);
 }
 
 void signalByBuzzer(){
@@ -74,7 +81,7 @@ void setup(){
     Serial.print("calibrating sensor ");
     delay(CALIBRATION_TIME_SEC * 1000);
     Serial.println("SENSOR ACTIVE");    
-    
+    shortBuzzerBeep(); //beep that we know, that sensor started working after calibration
     reset();
 }
 
