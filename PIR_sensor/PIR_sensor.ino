@@ -79,7 +79,8 @@ void setup(){
     
     //give the sensor some time to calibrate
     Serial.print("calibrating sensor ");
-    delay(CALIBRATION_TIME_SEC * 1000);
+    delay(CALIBRATION_TIME_SEC/2 * 1000);
+    delay(CALIBRATION_TIME_SEC/2 * 1000);
     Serial.println("SENSOR ACTIVE");    
     shortBuzzerBeep(); //beep that we know, that sensor started working after calibration
     reset();
